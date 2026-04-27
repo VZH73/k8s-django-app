@@ -1,0 +1,11 @@
+__pycache__/
+*.pyc
+.venv/
+env/
+.vscode/
+*.tar.gz
+buildkit*
+nerdctl*
+*.log
+.DS_Store
+containerd-rootless*
