@@ -1,5 +1,6 @@
 from django.db.models import Count, Sum
 from django.shortcuts import redirect, render
+from django.http import HttpResponse
 
 from .forms import ExpenseForm
 from .models import Expense
@@ -24,3 +25,6 @@ def home(request):
         'expense_count': summary['expense_count'] or 0,
     }
     return render(request, 'home.html', context)
+
+def health(request):
+    return HttpResponse("OK", content_type="text/plain")
