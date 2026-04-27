@@ -14,8 +14,8 @@ spec:
     spec:
       containers:
         - name: django
-          image: your-registry/k8s-django-app:latest
-          imagePullPolicy: IfNotPresent
+          image: k8s-django-app:local
+          imagePullPolicy: Never
           command: ["/bin/sh", "-c"]
           args:
             - python manage.py collectstatic --noinput && gunicorn project.wsgi:application --bind 0.0.0.0:8000
@@ -27,23 +27,23 @@ spec:
             - name: DB_NAME
               valueFrom:
                 secretKeyRef:
-                  name: django-secrets
-                  key: db-name
+                  name: django-secret
+                  key: DB_NAME
             - name: DB_USER
               valueFrom:
                 secretKeyRef:
-                  name: django-secrets
-                  key: db-user
+                  name: django-secret
+                  key: DB_USER
             - name: DB_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: django-secrets
-                  key: db-password
+                  name: django-secret
+                  key: DB_PASSWORD
             - name: SECRET_KEY
               valueFrom:
                 secretKeyRef:
-                  name: django-secrets
-                  key: secret-key
+                  name: django-secret
+                  key: SECRET_KEY
             - name: DEBUG
               value: "False"
             - name: ALLOWED_HOSTS
