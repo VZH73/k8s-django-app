@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Expense Diary</title>
+</head>
+<body>
+    <h1>Expense Diary</h1>
+
+    <h2>Add Expense</h2>
+    <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit">Add</button>
+    </form>
+
+    <h2>Summary</h2>
+    <p>Total expenses: {{ total_amount }}</p>
+    <p>Expense count: {{ expense_count }}</p>
+
+    <h2>Recent Expenses</h2>
+    {% if expenses %}
+        <ul>
+            {% for expense in expenses %}
+                <li>{{ expense.created_at }} — {{ expense.amount }} — {{ expense.description|default:"(No description)" }}</li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p>No expenses yet.</p>
+    {% endif %}
+</body>
+</html>
