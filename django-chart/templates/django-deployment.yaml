@@ -4,6 +4,11 @@ metadata:
   name: {{ .Release.Name }}-django
 spec:
   replicas: {{ .Values.django.replicaCount }}
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
   selector:
     matchLabels:
       app: django
@@ -21,6 +26,21 @@ spec:
             - python manage.py collectstatic --noinput && gunicorn project.wsgi:application --bind 0.0.0.0:8000
           ports:
             - containerPort: 8000
+
+          livenessProbe:
+            httpGet:
+              path: /health/
+              port: 8000
+            initialDelaySeconds: {{ .Values.django.probes.liveness.initialDelaySeconds }}
+            periodSeconds: {{ .Values.django.probes.liveness.periodSeconds }}
+
+          readinessProbe:
+            httpGet:
+              path: /health/
+              port: 8000
+            initialDelaySeconds: {{ .Values.django.probes.readiness.initialDelaySeconds }}
+            periodSeconds: {{ .Values.django.probes.readiness.periodSeconds }}
+
           env:
             - name: DB_HOST
               value: {{ .Release.Name }}-postgres

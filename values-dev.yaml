@@ -1,8 +1,22 @@
 django:
   replicaCount: 1
+
+  image:
+    repository: k8s-django-app
+    tag: v2
+    pullPolicy: Never  
+  
   env:
     debug: "True"
     allowedHosts: "*"
+
+  probes:
+    liveness:
+      initialDelaySeconds: 10
+      periodSeconds: 10
+    readiness:
+      initialDelaySeconds: 5
+      periodSeconds: 5
 
 nginx:
   replicaCount: 1

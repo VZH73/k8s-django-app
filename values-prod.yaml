@@ -1,5 +1,11 @@
 django:
   replicaCount: 2
+
+  image:
+    repository: k8s-django-app
+    tag: v2
+    pullPolicy: Never
+  
   env:
     debug: "False"
     allowedHosts: "prod.local"
