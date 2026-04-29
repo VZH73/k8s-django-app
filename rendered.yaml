@@ -1,0 +1,261 @@
+---
+# Source: django-chart/templates/django-secret.yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: my-app-django-secret
+type: Opaque
+stringData:
+  SECRET_KEY: dev-secret-key
+  DEBUG: "False"
+  ALLOWED_HOSTS: "*"
+  DB_HOST: postgres
+  DB_NAME: appdb
+  DB_USER: appuser
+  DB_PASSWORD: apppassword
+  DB_PORT: "5432"
+---
+# Source: django-chart/templates/postgres.yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: my-app-postgres-secret
+type: Opaque
+stringData:
+  POSTGRES_DB: appdb
+  POSTGRES_USER: appuser
+  POSTGRES_PASSWORD: apppassword
+---
+# Source: django-chart/templates/nginx-configmap.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: my-app-nginx-config
+data:
+  default.conf: |
+    server {
+      listen 80;
+      server_name _;
+
+      location /static/ {
+        alias /usr/share/nginx/html/static/;
+        expires 1h;
+        add_header Cache-Control "public, max-age=3600";
+      }
+
+      location / {
+        proxy_pass http://my-app-django:8000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+      }
+    }
+---
+# Source: django-chart/templates/postgres.yaml
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: my-app-postgres-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+---
+# Source: django-chart/templates/static-files-pvc.yaml
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: my-app-static-files-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+---
+# Source: django-chart/templates/django-service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: my-app-django
+spec:
+  selector:
+    app: django
+  ports:
+    - protocol: TCP
+      port: 8000
+      targetPort: 8000
+---
+# Source: django-chart/templates/nginx-service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: my-app-nginx
+spec:
+  selector:
+    app: nginx
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 80
+---
+# Source: django-chart/templates/postgres.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: my-app-postgres
+spec:
+  selector:
+    app: postgres
+  ports:
+    - port: 5432
+      targetPort: 5432
+  type: ClusterIP
+---
+# Source: django-chart/templates/django-deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: my-app-django
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: django
+  template:
+    metadata:
+      labels:
+        app: django
+    spec:
+      containers:
+        - name: django
+          image: "k8s-django-app:local"
+          imagePullPolicy: Never  
+          command: ["/bin/sh", "-c"]
+          args:
+            - python manage.py collectstatic --noinput && gunicorn project.wsgi:application --bind 0.0.0.0:8000
+          ports:
+            - containerPort: 8000
+          env:
+            - name: DB_HOST
+              value: my-app-postgres
+            - name: DB_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: my-app-django-secret
+                  key: DB_NAME
+            - name: DB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: my-app-django-secret
+                  key: DB_USER
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: my-app-django-secret
+                  key: DB_PASSWORD
+            - name: SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: my-app-django-secret
+                  key: SECRET_KEY
+            - name: DEBUG
+              value: "False"
+            - name: ALLOWED_HOSTS
+              value: "django.local"
+          volumeMounts:
+            - name: static-files
+              mountPath: /app/staticfiles
+      volumes:
+        - name: static-files
+          persistentVolumeClaim:
+            claimName: my-app-static-files-pvc
+---
+# Source: django-chart/templates/nginx-deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: my-app-nginx
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nginx
+  template:
+    metadata:
+      labels:
+        app: nginx
+    spec:
+      containers:
+        - name: nginx
+          image: nginx:1.27-alpine
+          ports:
+            - containerPort: 80
+          volumeMounts:
+            - name: static-files
+              mountPath: /usr/share/nginx/html/static
+              readOnly: true
+            - name: nginx-config
+              mountPath: /etc/nginx/conf.d/default.conf
+              subPath: default.conf
+      volumes:
+        - name: static-files
+          persistentVolumeClaim:
+            claimName: my-app-static-files-pvc
+        - name: nginx-config
+          configMap:
+            name: my-app-nginx-config
+---
+# Source: django-chart/templates/postgres.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: my-app-postgres
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres
+  template:
+    metadata:
+      labels:
+        app: postgres
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:16
+          ports:
+            - containerPort: 5432
+          envFrom:
+            - secretRef:
+                name: my-app-postgres-secret
+          volumeMounts:
+            - name: postgres-storage
+              mountPath: /var/lib/postgresql/data
+      volumes:
+        - name: postgres-storage
+          persistentVolumeClaim:
+            claimName: my-app-postgres-pvc
+---
+# Source: django-chart/templates/ingress.yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: my-app-django-ingress
+  spec:
+    ingressClassName: traefik
+spec:
+  rules:
+    - host: 
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: my-app-nginx
+                port:
+                  number: 80

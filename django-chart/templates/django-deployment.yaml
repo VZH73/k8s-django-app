@@ -1,0 +1,57 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}-django
+spec:
+  replicas: {{ .Values.django.replicaCount }}
+  selector:
+    matchLabels:
+      app: django
+  template:
+    metadata:
+      labels:
+        app: django
+    spec:
+      containers:
+        - name: django
+          image: "{{ .Values.django.image.repository }}:{{ .Values.django.image.tag }}"
+          imagePullPolicy: {{ .Values.django.image.pullPolicy }}  
+          command: ["/bin/sh", "-c"]
+          args:
+            - python manage.py collectstatic --noinput && gunicorn project.wsgi:application --bind 0.0.0.0:8000
+          ports:
+            - containerPort: 8000
+          env:
+            - name: DB_HOST
+              value: {{ .Release.Name }}-postgres
+            - name: DB_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Release.Name }}-django-secret
+                  key: DB_NAME
+            - name: DB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Release.Name }}-django-secret
+                  key: DB_USER
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Release.Name }}-django-secret
+                  key: DB_PASSWORD
+            - name: SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Release.Name }}-django-secret
+                  key: SECRET_KEY
+            - name: DEBUG
+              value: {{ .Values.django.env.debug | quote }}
+            - name: ALLOWED_HOSTS
+              value: {{ .Values.django.env.allowedHosts | quote }}
+          volumeMounts:
+            - name: static-files
+              mountPath: /app/staticfiles
+      volumes:
+        - name: static-files
+          persistentVolumeClaim:
+            claimName: {{ .Release.Name }}-static-files-pvc
