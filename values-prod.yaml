@@ -1,0 +1,12 @@
+django:
+  replicaCount: 2
+  env:
+    debug: "False"
+    allowedHosts: "prod.local"
+
+nginx:
+  replicaCount: 3
+
+ingress:
+  host: prod.local
+

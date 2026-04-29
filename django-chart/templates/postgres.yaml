@@ -41,6 +41,9 @@ spec:
           envFrom:
             - secretRef:
                 name: {{ .Release.Name }}-postgres-secret
+          env:
+            - name: POSTGRES_INITDB_ARGS
+              value: "--auth-host=scram-sha-256"
           volumeMounts:
             - name: postgres-storage
               mountPath: /var/lib/postgresql/data

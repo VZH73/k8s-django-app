@@ -1,0 +1,11 @@
+django:
+  replicaCount: 1
+  env:
+    debug: "True"
+    allowedHosts: "*"
+
+nginx:
+  replicaCount: 1
+
+ingress:
+  host: dev.local
