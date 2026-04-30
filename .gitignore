@@ -9,3 +9,7 @@ nerdctl*
 *.log
 .DS_Store
 containerd-rootless*
+# GitHub Actions self-hosted runner
+actions-runner/
+# local binaries / archives
+*.tar.gz
