@@ -36,3 +36,5 @@ jobs:
         run: |
           cd ~/projects/k8s-django-app
           helm upgrade my-app ./django-chart -n dev -f values-dev.yaml
+          kubectl rollout restart deployment/my-app-django -n dev
+          kubectl rollout status deployment/my-app-django -n dev          
