@@ -16,8 +16,8 @@ django:
 
   image:
     repository: vzh12345/k8s-django-app
-    tag: v1
-    pullPolicy: IfNotPresent
+    tag: latest
+    pullPolicy: Always
   
   env:
     debug: "True"
