@@ -1,5 +1,12 @@
 django:
   replicaCount: 2
+  resources:
+    requests:
+      cpu: "250m"
+      memory: "256Mi"
+    limits:
+      cpu: "1000m"
+      memory: "1Gi"
 
   image:
     repository: k8s-django-app
@@ -11,8 +18,24 @@ django:
     allowedHosts: "prod.local"
 
 nginx:
-  replicaCount: 3
+  replicaCount: 2
+  resources:
+    requests:
+      cpu: "100m"
+      memory: "128Mi"
+    limits:
+      cpu: "500m"
+      memory: "256Mi"
 
 ingress:
   host: prod.local
 
+postgres:
+  replicaCount: 1
+  resources:
+    requests:
+      cpu: "250m"
+      memory: "512Mi"
+    limits:
+      cpu: "1000m"
+      memory: "1Gi"

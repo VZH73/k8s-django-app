@@ -24,7 +24,7 @@ kind: Deployment
 metadata:
   name: {{ .Release.Name }}-postgres
 spec:
-  replicas: {{ .Values.django.replicaCount }}
+  replicas: {{ .Values.postgres.replicaCount }}
   selector:
     matchLabels:
       app: postgres
@@ -36,6 +36,7 @@ spec:
       containers:
         - name: postgres
           image: postgres:16
+          resources: {{- toYaml .Values.postgres.resources | nindent 12 }}
           ports:
             - containerPort: 5432
           envFrom:

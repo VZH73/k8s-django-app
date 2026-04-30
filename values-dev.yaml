@@ -1,10 +1,23 @@
 django:
-  replicaCount: 1
+  replicaCount: 2
+  resources:
+    requests:
+      cpu: "100m"
+      memory: "128Mi"
+    limits:
+      cpu: "500m"
+      memory: "512Mi"
+
+  hpa:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 5
+    cpuUtilization: 50
 
   image:
-    repository: k8s-django-app
-    tag: v2
-    pullPolicy: Never  
+    repository: vzh12345/k8s-django-app
+    tag: v1
+    pullPolicy: IfNotPresent
   
   env:
     debug: "True"
@@ -19,7 +32,24 @@ django:
       periodSeconds: 5
 
 nginx:
-  replicaCount: 1
+  replicaCount: 2
+  resources:
+    requests:
+      cpu: "50m"
+      memory: "64Mi"
+    limits:
+      cpu: "200m"
+      memory: "128Mi"
 
 ingress:
   host: dev.local
+
+postgres:
+  replicaCount: 1
+  resources:
+    requests:
+      cpu: "100m"
+      memory: "256Mi"
+    limits:
+      cpu: "500m"
+      memory: "512Mi"
