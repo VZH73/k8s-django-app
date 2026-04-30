@@ -1,4 +1,4 @@
-name: Build and Push Docker Image
+name: Build Push and Deploy
 
 on:
   push:
@@ -25,7 +25,7 @@ jobs:
           context: .
           push: true
           tags: |
-            vzh12345/k8s-django-app:latest
+            vzh12345/k8s-django-app:${{ github.sha }}
 
   deploy-dev:
     needs: build-and-push
@@ -35,6 +35,7 @@ jobs:
       - name: Deploy to dev via Helm
         run: |
           cd ~/projects/k8s-django-app
-          helm upgrade my-app ./django-chart -n dev -f values-dev.yaml
-          k3s kubectl rollout restart deployment/my-app-django -n dev
-          k3s kubectl rollout status deployment/my-app-django -n dev          
+          helm upgrade my-app ./django-chart -n dev -f values-dev.yaml \
+            --set django.image.tag=${{ github.sha }} \
+            --set django.image.pullPolicy=IfNotPresent
+          k3s kubectl rollout status deployment/my-app-django -n dev
