@@ -1,5 +1,5 @@
 django:
-  replicaCount: 2
+  replicaCount: 1
   resources:
     requests:
       cpu: "250m"
@@ -8,17 +8,31 @@ django:
       cpu: "1000m"
       memory: "1Gi"
 
+  hpa:
+    enabled: false
+    minReplicas: 1
+    maxReplicas: 3
+    cpuUtilization: 60
+
   image:
-    repository: k8s-django-app
-    tag: v2
-    pullPolicy: Never
-  
+    repository: vzh12345/k8s-django-app
+    tag: v1
+    pullPolicy: IfNotPresent
+
   env:
     debug: "False"
-    allowedHosts: "prod.local"
+    allowedHosts: "*"
+
+  probes:
+    liveness:
+      initialDelaySeconds: 10
+      periodSeconds: 10
+    readiness:
+      initialDelaySeconds: 5
+      periodSeconds: 5
 
 nginx:
-  replicaCount: 2
+  replicaCount: 1
   resources:
     requests:
       cpu: "100m"
