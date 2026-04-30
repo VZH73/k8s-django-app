@@ -4,7 +4,17 @@ on:
   push:
     branches:
       - main
+
   workflow_dispatch:
+    inputs:
+      environment:
+        description: "Where to deploy"
+        required: true
+        default: "prod"
+        type: choice
+        options:
+          - dev
+          - prod
 
 jobs:
   build-and-push:
@@ -28,30 +38,33 @@ jobs:
           tags: |
             vzh12345/k8s-django-app:${{ github.sha }}
 
-  deploy-dev:
+  deploy:
     needs: build-and-push
     runs-on: self-hosted
-    if: github.event_name == 'push'
 
     steps:
-      - name: Deploy to dev via Helm
+      - name: Deploy selected environment
         run: |
           cd ~/projects/k8s-django-app
-          helm upgrade my-app ./django-chart -n dev -f values-dev.yaml \
-            --set django.image.tag=${{ github.sha }} \
-            --set django.image.pullPolicy=IfNotPresent
-          k3s kubectl rollout status deployment/my-app-django -n dev
-  
-  deploy-prod:
-    needs: build-and-push
-    runs-on: self-hosted
-    if: github.event_name == 'workflow_dispatch'
 
-    steps:
-      - name: Deploy to prod via Helm
-        run: |
-          cd ~/projects/k8s-django-app
-          helm upgrade my-app ./django-chart -n prod -f values-prod.yaml \
+          if [ "${{ github.event_name }}" = "push" ]; then
+            ENVIRONMENT="dev"
+          else
+            ENVIRONMENT="${{ github.event.inputs.environment }}"
+          fi
+
+          if [ "$ENVIRONMENT" = "dev" ]; then
+            NAMESPACE="dev"
+            VALUES_FILE="values-dev.yaml"
+          else
+            NAMESPACE="prod"
+            VALUES_FILE="values-prod.yaml"
+          fi
+
+          echo "Deploying to $NAMESPACE using $VALUES_FILE"
+
+          helm upgrade my-app ./django-chart -n $NAMESPACE -f $VALUES_FILE \
             --set django.image.tag=${{ github.sha }} \
             --set django.image.pullPolicy=IfNotPresent
-          k3s kubectl rollout status deployment/my-app-django -n prod
+
+          k3s kubectl rollout status deployment/my-app-django -n $NAMESPACE
