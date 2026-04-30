@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+  workflow_dispatch:
 
 jobs:
   build-and-push:
@@ -39,3 +40,18 @@ jobs:
             --set django.image.tag=${{ github.sha }} \
             --set django.image.pullPolicy=IfNotPresent
           k3s kubectl rollout status deployment/my-app-django -n dev
+  
+  deploy-prod:
+    needs: build-and-push
+    runs-on: self-hosted
+
+    if: github.event_name == 'workflow_dispatch'
+
+    steps:
+      - name: Deploy to prod via Helm
+        run: |
+          cd ~/projects/k8s-django-app
+          helm upgrade my-app ./django-chart -n prod -f values-prod.yaml \
+            --set django.image.tag=${{ github.sha }} \
+            --set django.image.pullPolicy=IfNotPresent
+          k3s kubectl rollout status deployment/my-app-django -n prod
