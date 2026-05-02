@@ -4,7 +4,7 @@ from django.shortcuts import redirect, render
 from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 
 from .forms import ExpenseForm
-from .metrics import EXPENSE_CREATED, EXPENSE_TOTAL_AMOUNT
+from .metrics import EXPENSE_CREATED_EVENTS, EXPENSE_RECORDS_TOTAL, EXPENSE_TOTAL_AMOUNT
 from .models import Expense
 
 
@@ -13,11 +13,7 @@ def home(request):
         form = ExpenseForm(request.POST)
         if form.is_valid():
             form.save()
-            EXPENSE_CREATED.inc()
-
-            total_amount = Expense.objects.aggregate(total_amount=Sum('amount'))['total_amount'] or 0
-            EXPENSE_TOTAL_AMOUNT.set(float(total_amount))
-
+            EXPENSE_CREATED_EVENTS .inc()
             return redirect('home')
     else:
         form = ExpenseForm()
@@ -43,4 +39,12 @@ def health(request):
 
 
 def metrics(request):
+    summary = Expense.objects.aggregate(
+        expense_count=Count("id"),
+        total_amount=Sum("amount"),
+    )
+
+    EXPENSE_RECORDS_TOTAL.set(summary["expense_count"] or 0)
+    EXPENSE_TOTAL_AMOUNT.set(float(summary["total_amount"] or 0))
+
     return HttpResponse(generate_latest(), content_type=CONTENT_TYPE_LATEST)
